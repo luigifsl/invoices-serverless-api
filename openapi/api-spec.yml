@@ -1,0 +1,392 @@
+openapi: 3.0.1
+info:
+  title: Invoices, Clients and Users API
+  version: 1.0.0
+servers:
+  - url: 'https://<replace-with-your-dev-endpoint>/dev'
+  - url: 'https://<replace-with-your-test-endpoint>/test'
+
+paths:
+  /invoices:
+    post:
+      tags:
+        - Invoices
+      summary: Create a new invoice
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+      responses:
+        '200':
+          description: Invoice created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+        - Invoices
+      summary: Retrieve a list of invoices
+      security:   
+        - bearerAuth: []
+      parameters:  
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter invoices by status
+        - name: clientId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter invoices by client ID
+      responses:
+        '200':
+          description: Invoices retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array 
+                items:
+                  $ref: '#/components/schemas/InvoiceResponse'
+        '400':
+          description: Bad request, e.g., invalid query parameters
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  
+  /invoices/{invoiceId}:
+    put:
+      tags:
+        - Invoices
+      summary: Update an existing invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Invoice'
+      responses:
+        '200':
+          description: Invoice updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Invoices
+      summary: Retrieve an invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceResponse'
+        '404':
+          description: Invoice not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    delete:
+      tags:
+        - Invoices
+      summary: Delete an invoice
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice deleted successfully
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /pdf/invoices/{invoiceId}:
+    get:
+      tags:
+        - Invoices
+      summary: Get an S3 bucket link to download an invoice's pdf
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice's pdf link retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePDFResponse'
+        '404':
+          description: Invoice not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /clients:
+    post:
+      tags:
+        - Clients
+      summary: Create a new client
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Client'
+      responses:
+        '200':
+          description: Client created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    get:
+      tags:
+        - Clients
+      summary: Retrieve a list of clients
+      security:   
+        - bearerAuth: []
+      parameters:   
+        - name: name
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter clients by name
+        - name: email
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter clients by email
+      responses:
+        '200':
+          description: Clients retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array 
+                items:
+                  $ref: '#/components/schemas/ClientResponse'
+        '400':
+          description: Bad request, e.g., invalid query parameters
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  
+  /clients/{clientId}:
+    put:
+      tags:
+        - Clients
+      summary: Update an existing client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Client'
+      responses:
+        '200':
+          description: Client updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+    get:
+      tags:
+        - Clients
+      summary: Retrieve a client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Client retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClientResponse'
+        '404':
+          description: Client not found
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/signup:
+    post:
+      tags:
+        - Users
+      summary: Sign up a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User signed up successfully
+        '400':
+          description: Invalid input
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+  /users/login:
+    post:
+      tags:
+        - Users
+      summary: Log in a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: User logged in successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid input
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Invoice:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+        dueDate:
+          type: string
+        clientId:
+          type: string
+        status:
+          type: string
+
+    InvoiceResponse:
+      type: object
+      properties:
+        invoice:
+          $ref: '#/components/schemas/Invoice'
+
+    InvoicePDFResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        message:
+          type: string
+
+    Client:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        phoneNumber:
+          type: string
+        address:
+          type: string
+
+    ClientResponse:
+      type: object
+      properties:
+        client:
+          $ref: '#/components/schemas/Client'
+
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    LoginResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        token:
+          type: string
+
+
+  responses:
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: integer
+                example: 500
+              message:
+                type: string
