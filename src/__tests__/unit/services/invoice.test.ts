@@ -24,7 +24,19 @@ describe('InvoiceService', () => {
           status: 'Paid',
           clientId: 'client1',
           createdAt: '2023-10-12T10:10:12Z',
-          createdBy: 'user1'
+          createdBy: 'user1',
+          items: [
+            {
+              description: 'Item 1',
+              quantity: 1,
+              price: 100,
+            },
+            {
+              description: 'Item 2',
+              quantity: 3,
+              price: 10,
+            }
+          ]
         },
         {
           invoiceId: '2',
@@ -34,6 +46,18 @@ describe('InvoiceService', () => {
           status: 'Paid',
           createdAt: '2023-10-12T10:10:12Z',
           invoiceNumber: 'INV-002',
+          items: [
+            {
+              description: 'Item 1',
+              quantity: 1,
+              price: 100,
+            },
+            {
+              description: 'Item 2',
+              quantity: 3,
+              price: 10,
+            }
+          ]
         }
       ];
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
@@ -55,7 +79,19 @@ describe('InvoiceService', () => {
           status: 'Paid',
           clientId: 'client1',
           createdAt: '2023-10-12T10:10:12Z',
-          createdBy: 'user1'
+          createdBy: 'user1',
+          items: [
+            {
+              description: 'Item 1',
+              quantity: 1,
+              price: 100,
+            },
+            {
+              description: 'Item 2',
+              quantity: 3,
+              price: 10,
+            }
+          ]
         },
         {
           invoiceId: '2',
@@ -65,6 +101,18 @@ describe('InvoiceService', () => {
           status: 'Paid',
           createdAt: '2023-10-12T10:10:12Z',
           invoiceNumber: 'INV-002',
+          items: [
+            {
+              description: 'Item 1',
+              quantity: 1,
+              price: 100,
+            },
+            {
+              description: 'Item 2',
+              quantity: 3,
+              price: 10,
+            }
+          ]
         }
       ];
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
@@ -117,6 +165,18 @@ describe('InvoiceService', () => {
         status: 'Paid',
         createdAt: '2023-10-12T10:10:12Z',
         invoiceNumber: 'INV-001',
+        items: [
+          {
+            description: 'Item 1',
+            quantity: 1,
+            price: 100,
+          },
+          {
+            description: 'Item 2',
+            quantity: 3,
+            price: 10,
+          }
+        ]
       };
 
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({} as any);
@@ -128,7 +188,7 @@ describe('InvoiceService', () => {
       expect(result).toEqual(invoice);
     })
     it('should throw an error when invoice creation fails', async () => {
-      const invoice = {
+      const invoice: Invoice = {
         invoiceId: '1',
         createdBy: 'user1',
         clientId: 'client1',
@@ -136,6 +196,18 @@ describe('InvoiceService', () => {
         status: 'Paid',
         createdAt: '2023-10-12T10:10:12Z',
         invoiceNumber: 'INV-001',
+        items: [
+          {
+            description: 'Item 1',
+            quantity: 1,
+            price: 100,
+          },
+          {
+            description: 'Item 2',
+            quantity: 3,
+            price: 10,
+          }
+        ]
       }
 
       DynamoDBClient.prototype.send = jest.fn().mockRejectedValue(new Error('DynamoDB error'));

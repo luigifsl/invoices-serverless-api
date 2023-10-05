@@ -24,6 +24,7 @@ describe('ClientService', () => {
           email: 'client1@mail.com',
           phoneNumber: '1234567899',
           address: 'client1 address',
+          createdAt: '2021-10-10',
         },
         {
           clientId: '2',
@@ -31,6 +32,7 @@ describe('ClientService', () => {
           email: 'client2@mail.com',
           phoneNumber: '1234567890',
           address: 'client2 address',
+          createdAt: '2021-10-10',
         }
       ];
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
@@ -52,6 +54,7 @@ describe('ClientService', () => {
           email: 'client1@mail.com',
           phoneNumber: '1234567899',
           address: 'client1 address',
+          createdAt: '2021-10-10',
         },
       ];
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
@@ -74,6 +77,7 @@ describe('ClientService', () => {
           email: 'client1@mail.com',
           phoneNumber: '1234567899',
           address: 'client1 address',
+          createdAt: '2021-10-10',
         },
       ];
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
@@ -104,13 +108,14 @@ describe('ClientService', () => {
     });
   })
   describe('createClient', () => {
-    it('should create an client', async () => {
+    it('should create a client', async () => {
       const client: Client = {
         clientId: '1',
         name: 'client1',
         email: 'client1@mail.com',
         phoneNumber: '1234567899',
         address: 'client1 address',
+        createdAt: '2021-10-10',
       };
 
       DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({} as any);
@@ -122,12 +127,13 @@ describe('ClientService', () => {
       expect(result).toEqual(client);
     })
     it('should throw an error when client creation fails', async () => {
-      const client = {
+      const client: Client = {
         clientId: '1',
         name: 'client1',
         email: 'client1@mail.com',
         phoneNumber: '1234567899',
         address: 'client1 address',
+        createdAt: '2021-10-10',
       }
 
       DynamoDBClient.prototype.send = jest.fn().mockRejectedValue(new Error('DynamoDB error'));
@@ -137,7 +143,7 @@ describe('ClientService', () => {
     })
   })
   describe('getClient', () => {
-    it('should get an client', async () => {
+    it('should get a client', async () => {
       const client: Record<string, AttributeValue> = {
         clientId: { S: '1' },
         name: { S: 'client1' },
@@ -171,7 +177,7 @@ describe('ClientService', () => {
     })
   })
   describe('updateClient', () => {
-    it('should update an client successfully', async () => {
+    it('should update a client successfully', async () => {
       const updateResponse: UpdateItemCommandOutput = {
         Attributes: {
           clientId: { S: '1' },
@@ -214,22 +220,26 @@ describe('ClientService', () => {
     });
   });
   describe('deleteClient', () => {
-    it('should delete an client successfully', async () => {
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({});
+    it('should delete a client successfully', async () => {
+      const client: UpdateItemCommandOutput = {
+        Attributes: {
+          clientId: { S: '1' },
+          name: { S: 'client1' },
+          email: { S: 'client1@mail.com' },
+          phoneNumber: { S: '1234567899' },
+          address: { S: 'client1 address' },
+          createdAt: { S: '2021-10-10' },
+          deletedAt: { S: '2021-10-10' },
+        },
+        $metadata: { /* metadata */ }
+      };
+
+      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue(client);
       const clientService = new ClientService(new DynamoDBClient({}), 'Clients');
 
-      await clientService.deleteClient('test-id');
+      const deletedClient = await clientService.deleteClient('test-id');
 
-      expect(DynamoDBClient.prototype.send).toHaveBeenCalledWith(
-        expect.objectContaining({
-          input: {
-            TableName: 'Clients',
-            Key: {
-              clientId: { S: 'test-id' },
-            },
-          }
-        })
-      );
+      expect(deletedClient.deletedAt).toBeDefined();
     })
     it('should throw an error when client is not found', async () => {
       DynamoDBClient.prototype.send = jest.fn().mockRejectedValue(new Error('Client not found'));

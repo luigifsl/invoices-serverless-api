@@ -1,5 +1,5 @@
 
-import { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand, DeleteItemCommand, QueryCommand, UpdateItemCommandOutput } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand, QueryCommand, UpdateItemCommandOutput } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { Client, ClientFilter } from '../models'
 
@@ -125,16 +125,33 @@ export default class ClientService {
     return unmarshalled
   }
 
-  async deleteClient(id: string): Promise<void> {
-    const command = new DeleteItemCommand({
+  async deleteClient(id: string): Promise<Client> {
+    const deletedAt = new Date().toISOString();
+
+    // soft delete so invoices can still have a client reference
+    const command = new UpdateItemCommand({
       TableName: this.tableName,
       Key: {
         clientId: { S: id },
       },
+      UpdateExpression: `SET deletedAt = :deletedAt`,
+      ExpressionAttributeValues: {
+        ':deletedAt': { S: deletedAt },
+      },
+      ReturnValues: 'ALL_NEW',
     });
 
     try {
-      await this.dynamoClient.send(command);
+      const response = await this.dynamoClient.send(command);
+
+      const deletedClient = unmarshall(response.Attributes) as unknown as Client;
+
+      // deleted at should be set
+      if (deletedClient.deletedAt == null) {
+        throw new Error('Error deleting client')
+      }
+
+      return deletedClient
     } catch (error) {
       throw error;
     }

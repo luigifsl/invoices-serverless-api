@@ -4,9 +4,11 @@ export interface Client {
   email: string;
   address: string;
   phoneNumber: string;
+  createdAt: string;
+  deletedAt?: string;
 }
 
-export interface InvoiceItems {
+export interface InvoiceItem {
   description: string
   price: number
   quantity: number
@@ -20,7 +22,7 @@ export interface Invoice {
   clientId: string;
   createdBy: string;
   createdAt: string;
-  items?: InvoiceItems[]
+  items: InvoiceItem[]
 }
 
 export interface InvoiceWithClientInfo extends Invoice {

@@ -10,15 +10,6 @@ export const createClient = middyfy(async (event: APIGatewayProxyEvent): Promise
   try {
     const body = event.body ? event.body as unknown as Client : null
 
-    const userId = event.requestContext.authorizer?.claims.sub
-
-    if (!userId) {
-      return formatJSONResponse({
-        status: 401,
-        message: 'Not authorized'
-      })
-    }
-
     const newClient: Client = {
       ...body,
       clientId: uuid.v1(),
@@ -43,15 +34,6 @@ export const updateClient = middyfy(async (event: APIGatewayProxyEvent): Promise
 
   const client: Partial<Client> = {
     ...event.body as unknown as Partial<Client>
-  }
-
-  const userId = event.requestContext.authorizer?.claims.sub
-
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
   }
 
   try {
@@ -81,15 +63,6 @@ export const getAllClients = middyfy(async (event: APIGatewayProxyEvent): Promis
 })
 
 export const getClient = middyfy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const userId = event.requestContext.authorizer?.claims.sub
-
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
-  }
-
   try {
     const client = await clientService.getClient(event.pathParameters.id)
 
@@ -114,15 +87,6 @@ export const getClient = middyfy(async (event: APIGatewayProxyEvent): Promise<AP
 
 export const deleteClient = middyfy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const id = event.pathParameters.id
-
-  const userId = event.requestContext.authorizer?.claims.sub
-
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
-  }
 
   try {
     // workaround to check if client exists and belongs to user before we delete it

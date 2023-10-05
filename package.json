@@ -4,6 +4,7 @@
   "description": "Serverless aws-nodejs-typescript template",
   "main": "serverless.ts",
   "scripts": {
+    "tsc": "tsc --noEmit",
     "swagger": "swagger-ui-watcher ./openapi/api-spec.yml",
     "test": "npm run test:unit && npm run test:integration",
     "test:unit": "jest --config=jest.unit.config.ts",

@@ -1,18 +1,20 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { invoiceService } from '../../services';
+import { invoiceService, clientService } from '../../services';
 import { formatJSONResponse } from '@libs/api-gateway';
 import * as uuid from 'uuid'
 import { middyfy } from "@libs/lambda";
-import { Invoice, InvoiceFilter, InvoiceItems, SNSEvent } from "src/models";
-import { exec } from "child_process";
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { writeFile } from 'fs';
-import { promisify } from 'util';
-import { readFile } from "fs/promises";
-import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
+import { Client, Invoice, InvoiceFilter, InvoiceWithClientInfo, SNSEvent } from "src/models";
+import { getInvoiceHtml, htmlToPdf, uploadToS3 } from "@libs/pdf";
 
-const asyncWriteFile = promisify(writeFile);
-const asyncExec = promisify(exec);
+const getInvoiceClient = async (clientId: string): Promise<Client> => {
+  const client = await clientService.getClient(clientId)
+
+  if (!client) {
+    throw new Error('Client not found')
+  }
+
+  return client
+}
 
 export const createInvoice = middyfy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
@@ -20,12 +22,9 @@ export const createInvoice = middyfy(async (event: APIGatewayProxyEvent): Promis
 
     const userId = event.requestContext.authorizer?.claims.sub
 
-    if (!userId) {
-      return formatJSONResponse({
-        status: 401,
-        message: 'Not authorized'
-      })
-    }
+    // we call this function to check if client exists before we create the invoice
+    // if client does not exist it will throw an error and we won't create the invoice
+    const client = await getInvoiceClient(body.clientId)
 
     const newInvoice: Invoice = {
       ...body,
@@ -35,9 +34,13 @@ export const createInvoice = middyfy(async (event: APIGatewayProxyEvent): Promis
     }
 
     const invoice = await invoiceService.createInvoice(newInvoice)
+    const invoiceWithClient: InvoiceWithClientInfo = {
+      ...invoice,
+      client
+    }
 
     return formatJSONResponse({
-      invoice
+      invoice: invoiceWithClient
     })
   } catch (error) {
     console.log(error)
@@ -57,17 +60,20 @@ export const updateInvoice = middyfy(async (event: APIGatewayProxyEvent): Promis
 
   const userId = event.requestContext.authorizer?.claims.sub
 
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
-  }
-
   try {
+    // we call this function to check if client exists before we create the invoice
+    // if client does not exist it will throw an error and we won't create the invoice
+    const client = await getInvoiceClient(invoice.clientId)
+
     const updatedInvoice = await invoiceService.updateInvoice({ id, userId, invoice })
+
+    const invoiceWithClient: InvoiceWithClientInfo = {
+      ...updatedInvoice,
+      client
+    }
+
     return formatJSONResponse({
-      invoice: updatedInvoice
+      invoice: invoiceWithClient
     })
   } catch (error) {
     return formatJSONResponse({
@@ -95,15 +101,10 @@ export const getAllInvoices = middyfy(async (event: APIGatewayProxyEvent): Promi
 export const getInvoice = middyfy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const userId = event.requestContext.authorizer?.claims.sub
 
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
-  }
-
   try {
+
     const invoice = await invoiceService.getInvoice(event.pathParameters.id, userId)
+
 
     // if invoice does not exist or does not belong to the user return 404
     if (!invoice) {
@@ -113,8 +114,17 @@ export const getInvoice = middyfy(async (event: APIGatewayProxyEvent): Promise<A
       })
     }
 
+    // we assume the client exists because we already checked it when we created the invoice
+    // if client does not exist it will throw an error anyway
+    const client = await getInvoiceClient(invoice.clientId)
+
+    const response: InvoiceWithClientInfo = {
+      ...invoice,
+      client
+    }
+
     return formatJSONResponse({
-      invoice
+      invoice: response
     })
   } catch (error) {
     return formatJSONResponse({
@@ -128,13 +138,6 @@ export const deleteInvoice = middyfy(async (event: APIGatewayProxyEvent): Promis
   const id = event.pathParameters.id
 
   const userId = event.requestContext.authorizer?.claims.sub
-
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
-  }
 
   try {
     // workaround to check if invoice exists and belongs to user before we delete it
@@ -169,13 +172,6 @@ export const generateInvoicePdf = middyfy(async (event: APIGatewayProxyEvent): P
   const invoiceId = event.pathParameters?.id;
   const userId = event.requestContext.authorizer?.claims.sub;
 
-  if (!userId) {
-    return formatJSONResponse({
-      status: 401,
-      message: 'Not authorized'
-    })
-  }
-
   if (!invoiceId) {
     return {
       statusCode: 400,
@@ -184,7 +180,6 @@ export const generateInvoicePdf = middyfy(async (event: APIGatewayProxyEvent): P
   }
 
   try {
-    // Fetching invoice data
     const invoiceData = await invoiceService.getInvoice(invoiceId, userId);
 
     if (!invoiceData) {
@@ -194,30 +189,25 @@ export const generateInvoicePdf = middyfy(async (event: APIGatewayProxyEvent): P
       };
     }
 
-    const items: InvoiceItems[] = [
-      {
-        description: 'Item 1',
-        price: 10,
-        quantity: 2,
-      },
-      {
-        description: 'Item 2',
-        price: 20,
-        quantity: 1,
-      },
-    ];
-    // Convert invoice data to HTML
-    const html = await getInvoiceHtml({ ...invoiceData, items });
+    const client = await getInvoiceClient(invoiceData.clientId);
 
-    // Convert HTML to PDF
+    const invoiceWithClient: InvoiceWithClientInfo = {
+      ...invoiceData,
+      client,
+    };
+
+    // convert invoice data to HTML
+    const html = await getInvoiceHtml(invoiceWithClient);
+
+    // convert HTML to PDF
     const pdf = await htmlToPdf(html, invoiceId);
 
-    // Upload PDF to S3 and get the URL
+    // upload PDF to S3 and get the URL
     const url = await uploadToS3(pdf, `invoice-${invoiceId}.pdf`);
 
     return formatJSONResponse({
       status: 200,
-      message: 'PDF generated successfully',
+      message: 'Invoice PDF generated successfully',
       url
     })
   } catch (error) {
@@ -230,91 +220,3 @@ export const generateInvoicePdf = middyfy(async (event: APIGatewayProxyEvent): P
   }
 })
 
-export async function getInvoiceHtml(invoice: Invoice): Promise<string> {
-  try {
-    const itemsHtml = invoice.items?.map(item => `
-      <tr>
-        <td>${item.description}</td>
-        <td>${item.price.toFixed(2)}</td>
-        <td>${item.quantity}</td>
-        <td>${(item.price * item.quantity).toFixed(2)}</td>
-      </tr>
-    `).join('');
-
-    const totalAmount = invoice.items?.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
-
-    const html = `
-      <html>
-      <head>
-        <style>
-          /* Add your CSS styles here */
-        </style>
-      </head>
-      <body>
-        <h1>Invoice ${invoice.invoiceId}</h1>
-        <p>Date: ${invoice.dueDate}</p>
-        <p>Customer: ${invoice.clientId}</p>
-        <table border="1">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Price</th>
-              <th>Quantity</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsHtml}
-          </tbody>
-        </table>
-        <p>Total Amount: $${totalAmount}</p>
-      </body>
-      </html>
-    `;
-
-    return html;
-  } catch (error) {
-    console.error("Error generating invoice HTML:", error);
-    throw error;
-  }
-}
-
-const htmlToPdf = async (html: string, invoiceId: string): Promise<Buffer> => {
-  const htmlFilePath = `/tmp/${invoiceId}.html`;
-  const pdfFilePath = `/tmp/${invoiceId}.pdf`;
-
-  await asyncWriteFile(htmlFilePath, html);
-
-  try {
-    await asyncExec(`/opt/bin/wkhtmltopdf ${htmlFilePath} ${pdfFilePath}`);
-    console.log('PDF generated successfully');
-
-    const pdfBuffer = await readFile(pdfFilePath);
-    return pdfBuffer;
-
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw error;
-  }
-};
-
-const uploadToS3 = async (pdf: Buffer, filename: string): Promise<string> => {
-  const s3Client = new S3Client();
-  const bucketName = process.env.INVOICES_BUCKET_NAME;
-
-  const command = new PutObjectCommand({
-    Bucket: bucketName,
-    Key: filename,
-    Body: pdf,
-    ContentType: 'application/pdf',
-  });
-
-  await s3Client.send(command);
-
-  const url = await getSignedUrl(s3Client, new GetObjectCommand({
-    Bucket: bucketName,
-    Key: filename,
-  }), { expiresIn: 3600 }); // expires in 1 hour
-
-  return url;
-};
