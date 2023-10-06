@@ -83,11 +83,12 @@ export const createInvoiceSchema = {
 
 export const updateInvoiceSchema = {
   type: 'object',
-  required: ['invoiceNumber', 'dueDate', 'status'],
+  required: ['clientId'],
   properties: {
     invoiceNumber: { type: 'string' },
     dueDate: { type: 'string', format: 'date' },
     status: { type: 'string' },
+    clientId: { type: 'string' },
   },
 }
 

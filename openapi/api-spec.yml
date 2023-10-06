@@ -3,7 +3,7 @@ info:
   title: Invoices, Clients and Users API
   version: 1.0.0
 servers:
-  - url: 'https://iq3atjppcd.execute-api.us-east-1.amazonaws.com/test'
+  - url: 'https://hxgoj4oq3h.execute-api.us-east-1.amazonaws.com/dev'
 
 paths:
   /invoices:
@@ -81,7 +81,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Invoice'
+              $ref: '#/components/schemas/UpdateInvoice'
       responses:
         '200':
           description: Invoice updated successfully
@@ -219,7 +219,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Client'
+              $ref: '#/components/schemas/UpdateClient'
       responses:
         '200':
           description: Client updated successfully
@@ -287,7 +287,7 @@ paths:
         '200':
           description: User signed up successfully
         '400':
-          description: Invalid input
+          $ref: '#/components/responses/BadRequest'
         '500':
           $ref: '#/components/responses/InternalServerError'
 
@@ -331,6 +331,10 @@ components:
           type: string
         status:
           type: string
+        clientId:
+          type: string
+      required:
+        - clientId
 
     Invoice:
       type: object
@@ -339,6 +343,7 @@ components:
           type: string
         dueDate:
           type: string
+          format: date
         clientId:
           type: string
         status:
@@ -372,6 +377,14 @@ components:
         message:
           type: string
 
+    UpdateClient:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+
     Client:
       type: object
       properties:
@@ -397,6 +410,7 @@ components:
           type: string
         password:
           type: string
+          minLength: 6
 
     LoginResponse:
       type: object
@@ -418,5 +432,14 @@ components:
               status:
                 type: integer
                 example: 500
+              message:
+                type: string
+    BadRequest:
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
               message:
                 type: string

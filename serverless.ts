@@ -5,7 +5,7 @@ import { getClient, getAllClients, createClient, deleteClient, updateClient } fr
 import { createInvoice, deleteInvoice, getAllInvoices, getInvoice, snsMessageLogger, updateInvoice, generateInvoicePdf } from '@functions/invoices';
 
 const serverlessConfiguration: AWS = {
-  service: 'aws-serverless-typescript-api',
+  service: 'my-serverless-invoices-demo-api',
   frameworkVersion: '3',
   plugins: ['serverless-esbuild', 'serverless-offline', 'serverless-dynamodb'],
   provider: {
