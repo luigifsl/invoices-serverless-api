@@ -3,8 +3,7 @@ info:
   title: Invoices, Clients and Users API
   version: 1.0.0
 servers:
-  - url: 'https://<replace-with-your-dev-endpoint>/dev'
-  - url: 'https://<replace-with-your-test-endpoint>/test'
+  - url: 'https://iq3atjppcd.execute-api.us-east-1.amazonaws.com/test'
 
 paths:
   /invoices:
@@ -59,6 +58,8 @@ paths:
                   $ref: '#/components/schemas/InvoiceResponse'
         '400':
           description: Bad request, e.g., invalid query parameters
+        '401':
+          description: Unauthorized
         '500':
           $ref: '#/components/responses/InternalServerError'
   
@@ -327,6 +328,20 @@ components:
           type: string
         status:
           type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItems'
+
+    InvoiceItems:
+      type: object
+      properties:
+        description:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: number
 
     InvoiceResponse:
       type: object
