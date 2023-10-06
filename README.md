@@ -1,87 +1,219 @@
-# Serverless - AWS Node.js Typescript
+# Invoices API
 
-This project has been generated using the `aws-nodejs-typescript` template from the [Serverless framework](https://www.serverless.com/).
+This project is a demo of an invoices API. 
 
-For detailed instructions, please refer to the [documentation](https://www.serverless.com/framework/docs/providers/aws/).
+## Description
 
-## Installation/deployment instructions
+It provides endpoints to manage invoices and clients. Invoices can be downloaded as PDF. Users must be authenticated to manage their invoices and clients.
 
-Depending on your preferred package manager, follow the instructions below to deploy your project.
+## Table of Contents
 
-> **Requirements**: NodeJS `lts/fermium (v.14.15.0)`. If you're using [nvm](https://github.com/nvm-sh/nvm), run `nvm use` to ensure you're using the same Node version in local and in your lambda's runtime.
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Deploying](#deploying)
+- [Running the tests](#running-the-tests)
+  - [Unit Tests](#unit-tests)
+  - [Integration Tests](#integration-tests)
+- [API](#api)
+- [Features](#features)
 
-### Using NPM
+## Getting Started
 
-- Run `npm i` to install the project dependencies
-- Run `npx sls deploy` to deploy this stack to AWS
+The project is ready to be deployed on the AWS and be used.
 
-### Using Yarn
+### Prerequisites
 
-- Run `yarn` to install the project dependencies
-- Run `yarn sls deploy` to deploy this stack to AWS
+You must have the following before working with this project:
 
-## Test your service
+- Node.js (v18)
+- Serverless Framework
+- AWS CLI
+- AWS Credentials set
 
-This template contains a single lambda function triggered by an HTTP request made on the provisioned API Gateway REST API `/hello` route with `POST` method. The request body must be provided as `application/json`. The body structure is tested by API Gateway against `src/functions/hello/schema.ts` JSON-Schema definition: it must contain the `name` property.
+### Installation
 
-- requesting any other path than `/hello` with any other method than `POST` will result in API Gateway returning a `403` HTTP error code
-- sending a `POST` request to `/hello` with a payload **not** containing a string property named `name` will result in API Gateway returning a `400` HTTP error code
-- sending a `POST` request to `/hello` with a payload containing a string property named `name` will result in API Gateway returning a `200` HTTP status code with a message saluting the provided name and the detailed event processed by the lambda
+A step by step series of examples that tell you how to get a development environment running.
 
-> :warning: As is, this template, once deployed, opens a **public** endpoint within your AWS account resources. Anybody with the URL can actively execute the API Gateway endpoint and the corresponding lambda. You should protect this endpoint with the authentication method of your choice.
-
-### Locally
-
-In order to test the hello function locally, run the following command:
-
-- `npx sls invoke local -f hello --path src/functions/hello/mock.json` if you're using NPM
-- `yarn sls invoke local -f hello --path src/functions/hello/mock.json` if you're using Yarn
-
-Check the [sls invoke local command documentation](https://www.serverless.com/framework/docs/providers/aws/cli-reference/invoke-local/) for more information.
-
-### Remotely
-
-Copy and replace your `url` - found in Serverless `deploy` command output - and `name` parameter in the following `curl` command in your terminal or in Postman to test your newly deployed application.
-
-```
-curl --location --request POST 'https://myApiEndpoint/dev/hello' \
---header 'Content-Type: application/json' \
---data-raw '{
-    "name": "Frederic"
-}'
+1. Clone the repo
+```sh
+git clone https://github.com/luigifsl/invoices-serverless-api.git
 ```
 
-## Template features
+2. Install dependencies
+```sh
+npm install
+```
+
+Or use `yarn` if you prefer.
+
+## Deploying
+
+You can deploy this project with the following commands:
+```sh
+npm run deploy:dev
+```
+
+```sh
+npm run deploy:test
+```
+
+Each command deploys to a different `stage`. Notice that those commands just
+wrap the `serverless deploy` command.
+
+The commands above wrap the following `serverless` commands:
+
+```sh
+serverless deploy --aws-profile dev --stage dev
+```
+
+```sh
+serverless deploy --aws-profile dev --stage test
+```
+
+You can customize the `package.json` scripts to match your own `--aws-profile`
+and `--stage` or just use the `serverless` commands with your own options.
+
+Commands to destroy the resources were also set:
+
+```sh
+npm run remove:dev
+```
+
+```sh
+npm run remove:dev
+```
+
+They also wrap `serverless remove` commands.
+
+## Running the Tests
+
+Unit and Integration tests were written.
+
+### Unit Tests
+
+Invoice and Client services have unit tests. You can with with:
+```sh
+npm run test:unit
+```
+AWS resources were mocked.
+
+Although the unit tests are simple, they test different code flows for the services.
+
+### Integration Tests
+
+Integration tests require the app to be deployed, so you must provide an endpoint
+to test the application.
+
+1. Deploy your application as shown above
+
+2. Navigate to `src/__tests__/integration/functions/helper.ts`
+
+3. Make `BASE_URL` equals to your AWS endpoint. Example:
+```ts
+export const BASE_URL = 'https://my-endpoint.execute-api.my-region-1.amazonaws.com/my-stage'
+```
+4. Run the integration tests:
+```sh
+npm run test:integration
+```
+
+Your client and invoice integration tests should run and call the endpoint defined
+by your `BASE_URL`.
+
+## API
+
+The project contains an openapi spec. It's possible to render the api with
+Swagger UI and call your application's endpoint after the deploy.
+
+1. Deploy your application
+
+2. Copy your AWS endpoint and paste it in `openapi/api-spec/yml`:
+```yml
+servers:
+  - url: 'https://my-endpoint.execute-api.my-region-1.amazonaws.com/my-stage'
+```
+
+3. Run swagger
+```sh
+npm run swagger
+```
+
+It'll open swagger ui.
+
+4. Make api calls to the application
+
+Remember you must signup, login, and authorize the API with your token.
+
+## Features
 
 ### Project structure
 
 The project code base is mainly located within the `src` folder. This folder is divided in:
 
-- `functions` - containing code base and configuration for your lambda functions
-- `libs` - containing shared code base between your lambdas
+- `__tests__` - containing unit and integration tests, along with helper code
+- `functions` - containing code base and configuration for the lambda functions
+- `libs` - containing shared code base between the lambdas
+- `models` - containing the models used across the codebase
+- `services` - containing the service used by the lambdas
 
 ```
 .
 ├── src
+│   ├── __tests__               # Unit and Integration test code
+│   │   └── integration
+│   │      └── functions
+│   │          ├── client.test.integration.ts
+│   │          ├── invoice.test.integration.ts
+│   │          └── helper.ts
+│   │   └── unit
+│   │      └── services
+│   │          ├── client.test.ts
+│   │          └── invoice.test.ts
+│   │      └── services
 │   ├── functions               # Lambda configuration and source code folder
-│   │   ├── hello
-│   │   │   ├── handler.ts      # `Hello` lambda source code
-│   │   │   ├── index.ts        # `Hello` lambda Serverless configuration
-│   │   │   ├── mock.json       # `Hello` lambda input parameter, if any, for local invocation
-│   │   │   └── schema.ts       # `Hello` lambda input event JSON-Schema
-│   │   │
-│   │   └── index.ts            # Import/export of all lambda configurations
+│   │   └── clients
+│   │      ├── handler.ts      
+│   │      └── index.ts       
+│   │   └── invoices
+│   │      ├── handler.ts    
+│   │      └── index.ts     
+│   │   └── users
+│   │      ├── handler.ts  
+│   │      └── index.ts   
+│   │   
 │   │
-│   └── libs                    # Lambda shared code
-│       └── apiGateway.ts       # API Gateway specific helpers
-│       └── handlerResolver.ts  # Sharable library for resolving lambda handlers
-│       └── lambda.ts           # Lambda middleware
+│   │── libs                    # Lambda shared code
+│   │   └── apiGateway.ts       # API Gateway specific helpers
+│   │   └── handlerResolver.ts  # Sharable library for resolving lambda handlers
+│   │   └── lambda.ts           # Lambda middleware
+│   │   └── pdf.ts              # Code to generate pdf and store to S3 bucket
+│   │   
+│   │
+│   │── models                  # Models
+│   │   └── cognito.ts          # Get cognito details like user pool id and client id
+│   │   └── database.ts         # Get the dynamodb client
+│   │   └── index.ts            # Types and Interfaces
+│   │   
+│   │
+│   │── services                # Services code
+│   │   └── client.ts          
+│   │   └── invoice.ts         
+│   │   └── index.ts            
+│   │
+│   │── utils                   # wkhtmltox zip for lambda layer
+│   │
+│   └── openapi                 # Contains the api spec yml file
 │
-├── package.json
-├── serverless.ts               # Serverless service file
-├── tsconfig.json               # Typescript compiler configuration
-├── tsconfig.paths.json         # Typescript paths
-└── webpack.config.js           # Webpack configuration
+├── README.ms
+├── jest.integration.config.ts
+├── jest.setup.ts            
+├── jest.unit.config.ts     
+├── package-lock.json      
+├── package.json          
+├── serverless.ts        
+├── tsconfig.json       
+└── tsconfig.paths.json 
 ```
 
 ### 3rd party libraries
@@ -89,7 +221,4 @@ The project code base is mainly located within the `src` folder. This folder is 
 - [json-schema-to-ts](https://github.com/ThomasAribart/json-schema-to-ts) - uses JSON-Schema definitions used by API Gateway for HTTP request validation to statically generate TypeScript types in your lambda's handler code base
 - [middy](https://github.com/middyjs/middy) - middleware engine for Node.Js lambda. This template uses [http-json-body-parser](https://github.com/middyjs/middy/tree/master/packages/http-json-body-parser) to convert API Gateway `event.body` property, originally passed as a stringified JSON, to its corresponding parsed object
 - [@serverless/typescript](https://github.com/serverless/typescript) - provides up-to-date TypeScript definitions for your `serverless.ts` service file
-
-### Advanced usage
-
-Any tsconfig.json can be used, but if you do, set the environment variable `TS_NODE_CONFIG` for building the application, eg `TS_NODE_CONFIG=./tsconfig.app.json npx serverless webpack`
+- [wkhtmltopdf](https://wkhtmltopdf.org/) - provides the binary for the lambda layer to generate pdf from html

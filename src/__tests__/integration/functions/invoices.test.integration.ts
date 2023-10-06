@@ -1,47 +1,7 @@
 import axios from 'axios';
-
-const BASE_URL = 'https://<your-endpoint>/test'
+import { authenticateUser, BASE_URL, login, signUp } from './helper';
 
 const INVOICES_URL = `${BASE_URL}/invoices`;
-const SIGNUP_URL = `${BASE_URL}/users/signup`;
-const LOGIN_URL = `${BASE_URL}/users/login`;
-
-const user = {
-  email: 'test@test.com',
-  password: 'test123',
-}
-
-const signUp = async (email: string, password: string) => {
-  const response = await axios.post(SIGNUP_URL, { email, password });
-  return response.data;
-};
-
-
-const login = async (email: string, password: string) => {
-  const response = await axios.post(LOGIN_URL, { email, password });
-  return response.data;
-};
-
-const authenticateUser = async () => {
-  let responseLogin = await login(user.email, user.password);
-
-  if (responseLogin.status === 500 && responseLogin.message.name === 'UserNotFoundException') {
-    const responseSignup = await signUp(user.email, user.password);
-
-    if (responseSignup.status !== 200 && responseSignup.message !== `User created: ${user.email}`) {
-      throw new Error('Signup failed');
-    }
-
-    responseLogin = await login(user.email, user.password);
-
-    if (responseLogin.status !== 200) {
-      throw new Error('Login failed');
-    }
-  }
-
-  return responseLogin.token;
-}
-
 
 describe('Invoices Integration Test', () => {
   let token: string;
@@ -54,6 +14,28 @@ describe('Invoices Integration Test', () => {
 
   beforeEach(async () => {
     token = await authenticateUser();
+
+    const client = {
+      name: 'Test Client',
+      email: 'client@mail.com',
+      phoneNumber: '123456789',
+      address: '123 Test St',
+    }
+
+    try {
+      // must have a client to create an invoice
+      const response = await axios.post(`${BASE_URL}/clients`, client, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      testInvoice.clientId = response.data.client.clientId;
+
+    } catch (error) {
+      throw new Error('Failed to create client');
+    }
+
   });
 
   describe('CreateInvoice', () => {
@@ -137,7 +119,7 @@ describe('Invoices Integration Test', () => {
         ...fieldsToUpdate,
       };
 
-      const response = await axios.put(`${INVOICES_URL}/${invoiceId}`, fieldsToUpdate, {
+      const response = await axios.put(`${INVOICES_URL} / ${invoiceId}`, fieldsToUpdate, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -150,7 +132,7 @@ describe('Invoices Integration Test', () => {
 
     it('should fail to update an invoice when sending non updatable fields', async () => {
       try {
-        await axios.put(`${INVOICES_URL}/${invoiceId}`, { createdBy: 'will-fail' }, {
+        await axios.put(`${INVOICES_URL} / ${invoiceId}`, { createdBy: 'will-fail' }, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -168,7 +150,7 @@ describe('Invoices Integration Test', () => {
         status: 'Paid',
       }
       try {
-        await axios.put(`${INVOICES_URL}/${invoiceId}`, fieldsToUpdate, {
+        await axios.put(`${INVOICES_URL} / ${invoiceId}`, fieldsToUpdate, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -181,7 +163,7 @@ describe('Invoices Integration Test', () => {
 
     it('should fail for unauthenticated requests', async () => {
       try {
-        await axios.put(`${INVOICES_URL}/${invoiceId}`, testInvoice);
+        await axios.put(`${INVOICES_URL} / ${invoiceId}`, testInvoice);
       } catch (error) {
         expect(error.response.status).toBe(401);
       }
@@ -208,7 +190,7 @@ describe('Invoices Integration Test', () => {
     });
 
     it('should get an invoice', async () => {
-      const response = await axios.get(`${INVOICES_URL}/${invoiceId}`, {
+      const response = await axios.get(`${INVOICES_URL} / ${invoiceId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -234,7 +216,7 @@ describe('Invoices Integration Test', () => {
       const secondUserInvoiceId = secondUserInvoice.data.invoice.invoiceId;
 
       // try to get the secondUser's invoice with the first user token
-      const response = await axios.get(`${INVOICES_URL}/${secondUserInvoiceId}`, {
+      const response = await axios.get(`${INVOICES_URL} / ${secondUserInvoiceId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -245,7 +227,7 @@ describe('Invoices Integration Test', () => {
     });
 
     it('should fail if invoice does not exist ', async () => {
-      const response = await axios.get(`${INVOICES_URL}/not-existing-invoice`, {
+      const response = await axios.get(`${INVOICES_URL} / not - existing - invoice`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -257,7 +239,7 @@ describe('Invoices Integration Test', () => {
 
     it('should fail for unauthenticated requests', async () => {
       try {
-        await axios.get(`${INVOICES_URL}/${invoiceId}`);
+        await axios.get(`${INVOICES_URL} / ${invoiceId}`);
       } catch (error) {
         expect(error.response.status).toBe(401);
       }
@@ -283,7 +265,7 @@ describe('Invoices Integration Test', () => {
     });
 
     it('should delete an invoice', async () => {
-      const response = await axios.delete(`${INVOICES_URL}/${invoiceId}`, {
+      const response = await axios.delete(`${INVOICES_URL} / ${invoiceId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -309,7 +291,7 @@ describe('Invoices Integration Test', () => {
       const secondUserInvoiceId = secondUserInvoice.data.invoice.invoiceId;
 
       // try to get the secondUser's invoice with the first user token
-      let response = await axios.delete(`${INVOICES_URL}/${secondUserInvoiceId}`, {
+      let response = await axios.delete(`${INVOICES_URL} / ${secondUserInvoiceId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -319,7 +301,7 @@ describe('Invoices Integration Test', () => {
       expect(response.data.message).toBe('Invoice not found');
 
       // delete the secondUser's invoice
-      response = await axios.delete(`${INVOICES_URL}/${secondUserInvoiceId}`, {
+      response = await axios.delete(`${INVOICES_URL} / ${secondUserInvoiceId}`, {
         headers: {
           Authorization: `Bearer ${newToken}`,
         },
@@ -331,7 +313,7 @@ describe('Invoices Integration Test', () => {
     });
 
     it('should fail if invoice does not exist ', async () => {
-      const response = await axios.delete(`${INVOICES_URL}/not-existing-invoice`, {
+      const response = await axios.delete(`${INVOICES_URL} / not - existing - invoice`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -343,7 +325,7 @@ describe('Invoices Integration Test', () => {
 
     it('should fail for unauthenticated requests', async () => {
       try {
-        await axios.delete(`${INVOICES_URL}/${invoiceId}`);
+        await axios.delete(`${INVOICES_URL} / ${invoiceId}`);
       } catch (error) {
         expect(error.response.status).toBe(401);
       }
