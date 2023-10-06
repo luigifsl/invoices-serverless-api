@@ -254,6 +254,24 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+    delete:
+      tags:
+        - Clients
+      summary: Delete a client
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Client deleted successfully
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+
   /users/signup:
     post:
       tags:
@@ -304,6 +322,16 @@ components:
       bearerFormat: JWT
 
   schemas:
+    UpdateInvoice:
+      type: object
+      properties:
+        invoiceNumber:
+          type: string
+        dueDate:
+          type: string
+        status:
+          type: string
+
     Invoice:
       type: object
       properties:
