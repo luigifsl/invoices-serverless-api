@@ -122,12 +122,6 @@ export default class InvoiceService {
       updateExpression.push('dueDate = :dueDate');
     }
 
-    if (invoice.items) {
-      expressionAttributeValues[':dueDate'] = { S: invoice.dueDate };
-      updateExpression.push('dueDate = :dueDate');
-    }
-
-
     const command = new UpdateItemCommand({
       TableName: this.tableName,
       Key: {
