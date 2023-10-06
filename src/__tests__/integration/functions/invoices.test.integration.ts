@@ -259,6 +259,7 @@ describe('Invoices Integration Test', () => {
         invoiceNumber: 'INV456',
         dueDate: 'invalid-date',
         status: 'Paid',
+        clientId: testInvoice.clientId,
       }
       try {
         await axios.put(`${INVOICES_URL}/${invoiceId}`, fieldsToUpdate, {

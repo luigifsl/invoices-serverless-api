@@ -170,7 +170,6 @@ The project code base is mainly located within the `src` folder. This folder is 
 │   │      └── services
 │   │          ├── client.test.ts
 │   │          └── invoice.test.ts
-│   │      └── services
 │   ├── functions               # Lambda configuration and source code folder
 │   │   └── clients
 │   │      ├── handler.ts      
