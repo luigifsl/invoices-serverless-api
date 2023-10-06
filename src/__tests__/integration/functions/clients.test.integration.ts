@@ -13,8 +13,71 @@ describe('Clients Integration Test', () => {
     address: '123 Test St',
   };
 
-  beforeEach(async () => {
+  beforeAll(async () => {
     token = await authenticateUser();
+  });
+
+  describe('GetAllClients', () => {
+    beforeAll(async () => {
+      // create a couple of clients to be retrieved
+      try {
+        await axios.post(CLIENTS_URL, {
+          name: 'Test Client 1',
+          email: 'client1@mail.com',
+          phoneNumber: '123456789',
+          address: '123 Test St',
+        }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+          await axios.post(CLIENTS_URL, {
+            name: 'Test Client 2',
+            email: 'client2@mail.com',
+            phoneNumber: '123456788',
+            address: '123 Foo St',
+          }, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          await axios.post(CLIENTS_URL, {
+            name: 'Test Client 3',
+            email: 'client3@mail.com',
+            phoneNumber: '123456778',
+            address: '123 Bar St',
+          }, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+      } catch (error) {
+        throw new Error('Failed to create clients');
+      }
+    });
+
+    it('should get a list of clients', async () => {
+      const response = await axios.get(`${CLIENTS_URL}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      expect(response.status).toBe(200);
+      // this test is flaky, we must clean up the database after each test
+      // a solution would be to use transactions and rollback after each test
+      // to keep the database clean
+      // but for the sake of this demo, let's always expect length greater than 3 (since we created 3 clients, but db may have more...)
+      expect(response.data.clients.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should fail for unauthenticated requests', async () => {
+      try {
+        await axios.get(`${CLIENTS_URL}`);
+      } catch (error) {
+        expect(error.response.status).toBe(401);
+      }
+    });
   });
 
   describe('CreateClient', () => {

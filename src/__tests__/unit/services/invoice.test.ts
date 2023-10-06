@@ -3,7 +3,7 @@ import { SNSClient } from '@aws-sdk/client-sns';
 import { mockClient } from 'aws-sdk-client-mock';
 import InvoiceService from '../../../services/invoice';
 import { Invoice, InvoiceFilter } from '../../../models';
-import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
 const dynamoMock = mockClient(DynamoDBClient);
 const snsMock = mockClient(SNSClient);
@@ -60,7 +60,7 @@ describe('InvoiceService', () => {
           ]
         }
       ];
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
+      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems.map(item => marshall(item)) });
 
       const invoiceService = new InvoiceService(new DynamoDBClient({}), 'Invoices');
 
@@ -115,7 +115,7 @@ describe('InvoiceService', () => {
           ]
         }
       ];
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
+      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems.map(item => marshall(item)) });
 
       const invoiceService = new InvoiceService(new DynamoDBClient({}), 'Invoices');
 
@@ -127,8 +127,30 @@ describe('InvoiceService', () => {
     });
 
     it('should fetch invoices for the given client ID', async () => {
-      const mockItems = { invoiceId: '1', createdBy: 'user1' };
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
+      const mockItems: Invoice[] = [
+        {
+          invoiceId: '1',
+          invoiceNumber: 'INV-001',
+          dueDate: '2023-10-15T10:11:12Z',
+          status: 'Paid',
+          clientId: 'client1',
+          createdAt: '2023-10-12T10:10:12Z',
+          createdBy: 'user1',
+          items: [
+            {
+              description: 'Item 1',
+              quantity: 1,
+              price: 100,
+            },
+            {
+              description: 'Item 2',
+              quantity: 3,
+              price: 10,
+            }
+          ]
+        },
+      ];
+      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems.map(item => marshall(item)) });
 
       const invoiceService = new InvoiceService(new DynamoDBClient({}), 'Invoices');
 

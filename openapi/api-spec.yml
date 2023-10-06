@@ -187,19 +187,6 @@ paths:
       summary: Retrieve a list of clients
       security:   
         - bearerAuth: []
-      parameters:   
-        - name: name
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter clients by name
-        - name: email
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Filter clients by email
       responses:
         '200':
           description: Clients retrieved successfully

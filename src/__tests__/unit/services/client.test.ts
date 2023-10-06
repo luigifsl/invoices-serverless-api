@@ -1,10 +1,10 @@
 
-import { AttributeValue, DynamoDBClient, GetItemOutput, QueryCommand, UpdateItemCommandOutput } from '@aws-sdk/client-dynamodb';
+import { AttributeValue, DynamoDBClient, GetItemOutput, UpdateItemCommandOutput } from '@aws-sdk/client-dynamodb';
 import { SNSClient } from '@aws-sdk/client-sns';
 import { mockClient } from 'aws-sdk-client-mock';
 import ClientService from '../../../services/client';
-import { Client, ClientFilter } from '../../../models';
-import { unmarshall } from '@aws-sdk/util-dynamodb';
+import { Client } from '../../../models';
+import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
 
 const dynamoMock = mockClient(DynamoDBClient);
 const snsMock = mockClient(SNSClient);
@@ -35,60 +35,14 @@ describe('ClientService', () => {
           createdAt: '2021-10-10',
         }
       ];
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
+
+      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems.map(item => marshall(item)) });
 
       const clientService = new ClientService(new DynamoDBClient({}), 'Clients');
 
-      const clients = await clientService.getAllClients({ filter: {} });
+      const clients = await clientService.getAllClients();
 
       expect(clients).toEqual(mockItems);
-      expect(DynamoDBClient.prototype.send).toHaveBeenCalledWith(expect.any(QueryCommand));
-    });
-
-    // Test for fetching clients with status filter
-    it('should fetch clients with the given name', async () => {
-      const mockItems: Client[] = [
-        {
-          clientId: '1',
-          name: 'client1',
-          email: 'client1@mail.com',
-          phoneNumber: '1234567899',
-          address: 'client1 address',
-          createdAt: '2021-10-10',
-        },
-      ];
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
-
-      // Creating an instance of ClientService
-      const clientService = new ClientService(new DynamoDBClient({}), 'Clients');
-
-      const filter: ClientFilter = { name: 'client1' };
-      const clients = await clientService.getAllClients({ filter });
-
-      expect(clients).toEqual(mockItems);
-      expect(DynamoDBClient.prototype.send).toHaveBeenCalledWith(expect.any(QueryCommand));
-    });
-
-    it('should fetch clients for the given email', async () => {
-      const mockItems: Client[] = [
-        {
-          clientId: '1',
-          name: 'client1',
-          email: 'client1@mail.com',
-          phoneNumber: '1234567899',
-          address: 'client1 address',
-          createdAt: '2021-10-10',
-        },
-      ];
-      DynamoDBClient.prototype.send = jest.fn().mockResolvedValue({ Items: mockItems });
-
-      const clientService = new ClientService(new DynamoDBClient({}), 'Clients');
-
-      const filter: ClientFilter = { email: 'client1@mail.com' };
-      const clients = await clientService.getAllClients({ filter });
-
-      expect(clients).toEqual(mockItems);
-      expect(DynamoDBClient.prototype.send).toHaveBeenCalledWith(expect.any(QueryCommand));
     });
 
     it('should throw an error when no clients are found', async () => {
@@ -96,7 +50,7 @@ describe('ClientService', () => {
 
       const clientService = new ClientService(new DynamoDBClient({}), 'Clients');
 
-      await expect(clientService.getAllClients({ filter: {} })).rejects.toThrow('Error getting clients');
+      await expect(clientService.getAllClients()).rejects.toThrow('Error getting clients');
     });
 
     it('should handle errors from DynamoDB', async () => {
@@ -104,7 +58,7 @@ describe('ClientService', () => {
 
       const clientService = new ClientService(new DynamoDBClient({}), 'Clients');
 
-      await expect(clientService.getAllClients({ filter: {} })).rejects.toThrow('DynamoDB error');
+      await expect(clientService.getAllClients()).rejects.toThrow('DynamoDB error');
     });
   })
   describe('createClient', () => {

@@ -48,7 +48,9 @@ export default class InvoiceService {
         throw new Error('Error getting invoices');
       }
 
-      return response.Items as unknown[] as Invoice[];
+      const unmarshalled: Invoice[] = response.Items.map(item => unmarshall(item) as unknown as Invoice);
+
+      return unmarshalled;
     } catch (error) {
       throw error;
     }

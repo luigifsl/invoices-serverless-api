@@ -4,7 +4,7 @@ import { clientService } from '../../services';
 import { formatJSONResponse } from '@libs/api-gateway';
 import * as uuid from 'uuid'
 import { middyfy } from "@libs/lambda";
-import { Client, ClientFilter } from "../../models";
+import { Client } from "../../models";
 
 export const createClient = middyfy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   try {
@@ -13,6 +13,7 @@ export const createClient = middyfy(async (event: APIGatewayProxyEvent): Promise
     const newClient: Client = {
       ...body,
       clientId: uuid.v1(),
+      deletedAt: ''
     }
 
     const client = await clientService.createClient(newClient)
@@ -49,13 +50,8 @@ export const updateClient = middyfy(async (event: APIGatewayProxyEvent): Promise
   }
 })
 
-export const getAllClients = middyfy(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  const filter: ClientFilter = {
-    email: event.queryStringParameters?.email,
-    name: event.queryStringParameters?.name
-  }
-
-  const clients = await clientService.getAllClients({ filter })
+export const getAllClients = middyfy(async (): Promise<APIGatewayProxyResult> => {
+  const clients = await clientService.getAllClients()
 
   return formatJSONResponse({
     clients

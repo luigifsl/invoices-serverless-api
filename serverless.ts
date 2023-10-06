@@ -33,6 +33,7 @@ const serverlessConfiguration: AWS = {
           {
             Effect: 'Allow',
             Action: [
+              'dynamodb:Scan',
               'dynamodb:Query',
               'dynamodb:GetItem',
               'dynamodb:PutItem',

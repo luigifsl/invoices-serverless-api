@@ -1,7 +1,6 @@
-
-import { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand, QueryCommand, UpdateItemCommandOutput } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, PutItemCommand, GetItemCommand, UpdateItemCommand, UpdateItemCommandOutput, ScanCommand } from "@aws-sdk/client-dynamodb";
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { Client, ClientFilter } from '../models'
+import { Client } from '../models'
 
 export default class ClientService {
   constructor(
@@ -9,32 +8,9 @@ export default class ClientService {
     private readonly tableName: string,
   ) { }
 
-  async getAllClients({ filter }: { filter: ClientFilter }): Promise<Client[]> {
-    const expressionAttributeValues: any = {};
-
-    const expressionAttributeNames: any = {};
-    const filterExpressions: string[] = [];
-
-    if (filter?.name) {
-      expressionAttributeNames['#name'] = 'name';
-      filterExpressions.push('#name = :name');
-      expressionAttributeValues[':name'] = { S: filter.name };
-    }
-
-    if (filter?.email) {
-      filterExpressions.push('email = :email');
-      expressionAttributeValues[':email'] = { S: filter.email };
-    }
-
-    const filterExpression = filterExpressions.length > 0
-      ? filterExpressions.join(' AND ')
-      : undefined;
-
-    const command = new QueryCommand({
+  async getAllClients(): Promise<Client[]> {
+    const command = new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: filterExpression,
-      ExpressionAttributeValues: expressionAttributeValues,
-      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
     });
 
     try {
@@ -44,7 +20,9 @@ export default class ClientService {
         throw new Error('Error getting clients');
       }
 
-      return response.Items as unknown[] as Client[];
+      const unmarshalled: Client[] = response.Items.map(item => unmarshall(item) as unknown as Client);
+
+      return unmarshalled;
     } catch (error) {
       throw error;
     }
