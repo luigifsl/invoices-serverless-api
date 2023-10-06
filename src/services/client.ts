@@ -12,10 +12,12 @@ export default class ClientService {
   async getAllClients({ filter }: { filter: ClientFilter }): Promise<Client[]> {
     const expressionAttributeValues: any = {};
 
+    const expressionAttributeNames: any = {};
     const filterExpressions: string[] = [];
 
     if (filter?.name) {
-      filterExpressions.push('name = :name');
+      expressionAttributeNames['#name'] = 'name';
+      filterExpressions.push('#name = :name');
       expressionAttributeValues[':name'] = { S: filter.name };
     }
 
@@ -32,6 +34,7 @@ export default class ClientService {
       TableName: this.tableName,
       FilterExpression: filterExpression,
       ExpressionAttributeValues: expressionAttributeValues,
+      ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
     });
 
     try {
@@ -88,7 +91,7 @@ export default class ClientService {
 
   async updateClient({ id, client }: { id: string, client: Partial<Client> }): Promise<Client> {
     const expressionAttributeValues: any = {};
-    const updateExpression: string[] = [];
+    const updateExpression: string[] = []
     const expressionAttributeNames: any = {};
 
     if (client.name) {
